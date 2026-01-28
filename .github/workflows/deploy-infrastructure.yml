@@ -264,6 +264,7 @@ jobs:
               --parameters \
                 ParameterKey=Environment,ParameterValue="${{ env.ENVIRONMENT }}" \
                 ParameterKey=ProjectName,ParameterValue="${{ env.PROJECT_NAME }}" \
+              --capabilities CAPABILITY_NAMED_IAM \
               --region "${{ env.AWS_REGION }}" || {
                 echo "⚠️ No changes to deploy for frontend stack"
               }
@@ -280,6 +281,7 @@ jobs:
               --parameters \
                 ParameterKey=Environment,ParameterValue="${{ env.ENVIRONMENT }}" \
                 ParameterKey=ProjectName,ParameterValue="${{ env.PROJECT_NAME }}" \
+              --capabilities CAPABILITY_NAMED_IAM \
               --on-failure DELETE \
               --region "${{ env.AWS_REGION }}"
             
