@@ -122,7 +122,10 @@ jobs:
           # Validate using S3 URL
           aws cloudformation validate-template \
             --template-url "https://${TEMPLATE_BUCKET}.s3.${{ env.AWS_REGION }}.amazonaws.com/${TEMPLATE_KEY}"
-          
+
+          # Cleanup: Remove uploaded template (keep bucket for reuse)
+          aws s3 rm "s3://${TEMPLATE_BUCKET}/${TEMPLATE_KEY}" || true
+
           echo "✅ Backend template validation passed"
 
       - name: Deploy backend infrastructure
