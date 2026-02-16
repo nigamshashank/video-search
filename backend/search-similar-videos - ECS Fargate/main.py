@@ -2432,21 +2432,6 @@ def parse_search_results_vector(response):
 #         logger.warning("AWS_S3_BUCKET not set, skipping CORS configuration")
 #         return
 
-#     cors_config = {
-#         'CORSRules': [
-#             {
-#                 'AllowedOrigins': [
-#                     'http://localhost:3000',
-#                     'http://condenast-fe.s3-website-us-east-1.amazonaws.com',
-#                     'https://condenast-fe.s3-website-us-east-1.amazonaws.com'
-#                 ],
-#                 'AllowedMethods': ['PUT', 'POST', 'GET', 'HEAD'],
-#                 'AllowedHeaders': ['*'],
-#                 'MaxAgeSeconds': 3000,
-#                 'ExposeHeaders': ['ETag', 'x-amz-version-id']
-#             }
-#         ]
-#     }
 
 #     try:
 #         s3_client.put_bucket_cors(Bucket=bucket_name, CORSConfiguration=cors_config)
