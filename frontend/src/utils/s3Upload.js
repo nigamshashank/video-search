@@ -19,63 +19,47 @@ export const upload_to_s3 = async (file, presignedData, onProgress) => {
     const fileBuffer = await file.arrayBuffer();
     const uint8Array = new Uint8Array(fileBuffer);
 
-    // For files smaller than 100MB, use simple PUT
-    const use_simple_upload = file.size < 100 * 1024 * 1024;
+    // For files up to 2GB, use simple PUT (S3 supports up to 5GB in single PUT)
+    const use_simple_upload = file.size <= 2 * 1024 * 1024 * 1024;
 
     if (use_simple_upload) {
-      // Simple PUT request for smaller files
-      if (onProgress) {
-        onProgress(50); // Show 50% while uploading
-      }
+      // Simple PUT request with progress tracking using XMLHttpRequest
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
 
-      const response = await fetch(presigned_url, {
-        method: 'PUT',
-        body: uint8Array,
-        headers: {
-          'Content-Type': file.type,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`S3 upload failed with status ${response.status}`);
-      }
-
-      if (onProgress) {
-        onProgress(100); // Complete
-      }
-    } else {
-      // Multipart upload for larger files using XMLHttpRequest for progress tracking
-      const chunkSize = 5 * 1024 * 1024; // 5MB chunks
-      const totalChunks = Math.ceil(file.size / chunkSize);
-
-      for (let i = 0; i < totalChunks; i++) {
-        const start = i * chunkSize;
-        const end = Math.min(start + chunkSize, file.size);
-        const chunk = uint8Array.slice(start, end);
-
-        const response = await fetch(presigned_url, {
-          method: 'PUT',
-          body: chunk,
-          headers: {
-            'Content-Type': file.type,
-            'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
-          },
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable && onProgress) {
+            const percentComplete = Math.round((e.loaded / e.total) * 100);
+            onProgress(percentComplete);
+          }
         });
 
-        if (!response.ok) {
-          throw new Error(`S3 chunk upload failed at chunk ${i + 1}/${totalChunks}`);
-        }
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            if (onProgress) onProgress(100);
+            resolve(s3_path);
+          } else {
+            reject(new Error(`S3 upload failed with status ${xhr.status}`));
+          }
+        });
 
-        // Update progress
-        const progress = Math.round(((i + 1) / totalChunks) * 100);
-        if (onProgress) {
-          onProgress(progress);
-        }
-      }
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
+        });
+
+        xhr.addEventListener('abort', () => {
+          reject(new Error('Upload aborted'));
+        });
+
+        xhr.open('PUT', presigned_url);
+        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.send(uint8Array);
+      });
+    } else {
+      // Files larger than 2GB would require proper S3 multipart upload API
+      // with backend support for CreateMultipartUpload and part URLs
+      throw new Error('Files larger than 2GB are not currently supported');
     }
-
-    console.log('✓ File uploaded successfully to S3');
-    return s3_path;
   } catch (error) {
     console.error('S3 upload error:', error);
     throw new Error(`Failed to upload to S3: ${error.message}`);
