@@ -617,12 +617,12 @@ async def generate_upload_url(filename: str):
         if not bucket_name:
             raise ValueError("AWS_S3_BUCKET environment variable not set")
 
-        # Generate presigned URL for PUT operation (15 minutes expiry)
+        # Generate presigned URL for PUT operation (1 hour expiry)
         # Include ContentType to match the Content-Type header sent by frontend
         presigned_url = s3_client.generate_presigned_url(
             "put_object",
             Params={"Bucket": bucket_name, "Key": s3_key, "ContentType": "video/mp4"},
-            ExpiresIn=900,  # 15 minutes
+            ExpiresIn=3600,  # 1 hour
         )
 
         logger.info(f"✓ Generated presigned upload URL for: {s3_key}")
@@ -631,7 +631,7 @@ async def generate_upload_url(filename: str):
             "presigned_url": presigned_url,
             "s3_key": s3_key,
             "s3_path": f"s3://{bucket_name}/{s3_key}",
-            "expires_in": 900,
+            "expires_in": 3600,
         }
 
     except ValueError as e:

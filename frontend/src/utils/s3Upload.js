@@ -86,7 +86,7 @@ export const upload_to_s3 = async (file, presignedData, onProgress) => {
  * Validate file before upload
  */
 export const validate_video_file = (file) => {
-  const max_size = 500 * 1024 * 1024; // 500MB
+  const max_size = 2 * 1024 * 1024 * 1024; // 2GB
   const allowed_types = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
 
   if (!file) {
@@ -94,7 +94,7 @@ export const validate_video_file = (file) => {
   }
 
   if (file.size > max_size) {
-    return { valid: false, error: 'File size exceeds 500MB limit' };
+    return { valid: false, error: 'File size exceeds 2GB limit' };
   }
 
   if (!allowed_types.includes(file.type)) {

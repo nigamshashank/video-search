@@ -95,7 +95,7 @@ const VideoUpload = () => {
                     {file ? file.name : 'Click to select video'}
                   </p>
                   <p className="text-base text-gray-500">
-                    Acceptable format: MP4 Only (max. 500MB)
+                    Acceptable format: MP4 Only (max. 2GB)
                   </p>
                 </div>
                 <input
