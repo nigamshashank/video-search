@@ -77,7 +77,7 @@ jobs:
         id: names
         run: |
           echo "backend_stack_name=${{ env.STACK_PREFIX }}-${{ env.ENVIRONMENT }}-backend" >> $GITHUB_OUTPUT
-          echo "frontend_stack_name=${{ env.PROJECT_NAME }}-frontend-${{ env.ENVIRONMENT }}" >> $GITHUB_OUTPUT
+          echo "frontend_stack_name=${{ env.STACK_PREFIX }}-${{ env.ENVIRONMENT }}-frontend" >> $GITHUB_OUTPUT
 
   deploy-backend:
     needs: validate-inputs

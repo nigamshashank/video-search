@@ -1,5 +1,6 @@
 import axios from 'axios';
 import runtimeConfig from '../config/runtimeConfig.js';
+import { getAccessToken } from '../auth/loginSession.js';
 
 /**
  * API Service for Video Search Application
@@ -43,6 +44,11 @@ const getBackendUrl = async () => {
     console.error('❌ Failed to load configuration:', error.message);
     throw new Error(`Configuration error: ${error.message}`);
   }
+};
+
+const getAuthHeaders = () => {
+  const token = getAccessToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 // Old searchClips - commented out
@@ -121,10 +127,10 @@ export const searchClips = async (query, topK = 10, searchType = 'vector', image
 
       console.log('✓ File validation passed');
       console.log('🔄 Converting image to base64...');
-      
+
       const base64String = await fileToBase64(imageFile);
       console.log(`✓ Base64 conversion complete. Length: ${base64String.length} characters`);
-      
+
       requestBody.image_base64 = base64String;
     }
 
@@ -132,22 +138,23 @@ export const searchClips = async (query, topK = 10, searchType = 'vector', image
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify(requestBody),
     });
-    
+
     // Check if response is ok
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(`API returned status code: ${response.status}. ${errorData.detail || ''}`);
     }
-    
+
     // Parse the response body
     const data = await response.json();
     console.log('✓ Search completed successfully');
     console.log(`  - Results found: ${data.clips?.length || 0}`);
     console.log(`  - Total: ${data.total}`);
-    
+
     return data;
   } catch (error) {
     console.error('❌ Error searching clips:', error);
@@ -164,7 +171,7 @@ export const searchClipsWithImage = async (imageFile, topK = 10, searchType = 'v
 
 // Unified search function for Marengo 3 - handles text, image, or combined text+image searches
 // Supported search types: 'vector', 'visual', 'audio', 'transcription'
-export const searchClipsMarengo3 = async (query = null, topK = 10, searchType = 'vector', imageFile = null) => {
+export const searchClipsMarengo3 = async (query = null, topK = 10, searchType = 'vector', imageFile = null, categories = null, minRelevance = null, maxSegmentsPerVideo = null) => {
   try {
     // Load config first
     const backendUrl = await getBackendUrl();
@@ -184,6 +191,17 @@ export const searchClipsMarengo3 = async (query = null, topK = 10, searchType = 
       top_k: topK,
       search_type: searchType
     };
+
+    // Add optional filter params
+    if (categories && categories.length > 0) {
+      requestBody.categories = categories;
+    }
+    if (minRelevance !== null && minRelevance !== undefined) {
+      requestBody.min_relevance = minRelevance;
+    }
+    if (maxSegmentsPerVideo !== null && maxSegmentsPerVideo !== undefined) {
+      requestBody.max_segments_per_video = maxSegmentsPerVideo;
+    }
 
     // Determine search type for logging
     let searchInputType = '';
@@ -234,10 +252,10 @@ export const searchClipsMarengo3 = async (query = null, topK = 10, searchType = 
 
       console.log('✓ File validation passed');
       console.log('🔄 Converting image to base64...');
-      
+
       const base64String = await fileToBase64(imageFile);
       console.log(`✓ Base64 conversion complete. Length: ${base64String.length} characters`);
-      
+
       requestBody.image_base64 = base64String;
     }
 
@@ -246,16 +264,17 @@ export const searchClipsMarengo3 = async (query = null, topK = 10, searchType = 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify(requestBody),
     });
-    
+
     // Check if response is ok
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(`API returned status code: ${response.status}. ${errorData.detail || ''}`);
     }
-    
+
     // Parse the response body
     const data = await response.json();
     console.log('✓ Search (Marengo 3) completed successfully');
@@ -265,7 +284,7 @@ export const searchClipsMarengo3 = async (query = null, topK = 10, searchType = 
     console.log(`  - Total: ${data.total}`);
     console.log(`  - Search Intent: ${data.classified_intent}`);
     console.log(`  - Weights used: ${data.weights_used}`);
-    
+
     return data;
   } catch (error) {
     console.error('❌ Error searching clips (Marengo 3):', error);
@@ -321,6 +340,7 @@ export const listAllVideos = async () => {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       }
     });
     let data = await response.json();
@@ -332,7 +352,7 @@ export const listAllVideos = async () => {
   }
 };
 
-export const getPresignedUploadUrl = async (filename, fileSize) => {
+export const getPresignedUploadUrl = async (filename, fileSize, category) => {
   try {
     // Load config first
     const backendUrl = await getBackendUrl();
@@ -342,20 +362,24 @@ export const getPresignedUploadUrl = async (filename, fileSize) => {
     if (fileSize) {
       queryParams += `&file_size=${fileSize}`;
     }
+    if (category) {
+      queryParams += `&category=${encodeURIComponent(category)}`;
+    }
 
     const response = await fetch(`${backendUrl}/generate-upload-presigned-url?${queryParams}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       }
     });
-    
+
     if (!response.ok) {
       throw new Error(`Failed to generate presigned URL: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
+
     if (data.type === 'multipart') {
       console.log('✓ Multipart upload initialized:', {
         s3_key: data.s3_key,
@@ -370,7 +394,7 @@ export const getPresignedUploadUrl = async (filename, fileSize) => {
         expires_in: data.expires_in
       });
     }
-    
+
     return data;
   } catch (error) {
     console.error('❌ Error getting presigned upload URL:', error);
@@ -399,6 +423,7 @@ export const completeMultipartUpload = async (uploadData) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...getAuthHeaders(),
       },
       body: JSON.stringify({
         uploadId,

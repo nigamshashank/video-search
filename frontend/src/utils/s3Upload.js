@@ -5,7 +5,7 @@
 export const upload_to_s3 = async (file, presignedData, onProgress) => {
   const { presigned_urls, uploadId, s3_path, presigned_url } = presignedData;
 
-  // CASE 1: MULTIPART UPLOAD (Recommended for 2GB)
+  // CASE 1: MULTIPART UPLOAD (Recommended for large files)
   if (presigned_urls && Array.isArray(presigned_urls)) {
     const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
     const totalParts = presigned_urls.length;
