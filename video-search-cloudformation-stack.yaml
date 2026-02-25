@@ -1229,6 +1229,8 @@ Resources:
           Value: !Sub '${StackPrefix}-${VideoBucketBaseName}-${AWS::Region}-${AWS::AccountId}-${env}'
         - Name: PORT
           Value: '8000'
+        - Name: JWT_SECRET
+          Value: !Sub '${StackPrefix}-${env}-jwt-secret-${AWS::AccountId}'
         LogConfiguration:
           LogDriver: awslogs
           Options:
