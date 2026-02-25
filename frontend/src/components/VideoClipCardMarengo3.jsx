@@ -4,16 +4,17 @@ import { formatTimestamp } from '../utils/formatTime';
 import { use_thumbnail } from '../hooks/useThumbnail';
 
 const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
-  const { 
-    video_id, 
-    video_path, 
-    timestamp_start, 
-    timestamp_end, 
-    clip_text, 
-    presigned_url, 
-    thumbnail_path, 
+  const {
+    video_id,
+    video_path,
+    timestamp_start,
+    timestamp_end,
+    clip_text,
+    presigned_url,
+    thumbnail_path,
     video_name,
-    video_duration_sec 
+    video_duration_sec,
+    score
   } = clip;
 
   // Use thumbnail_path if available (presigned URL from backend), otherwise generate from video
@@ -72,11 +73,20 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
           <h3 className="text-base font-semibold text-gray-900 line-clamp-1 leading-tight flex-1">
             {video_name || clip_text || 'Untitled Video'}
           </h3>
-          <div className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200">
-            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-            <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
-              {formatTimestamp(timestamp_start)} - {formatTimestamp(timestamp_end)}
-            </span>
+          <div className="flex-shrink-0 flex items-center gap-2">
+            {score !== undefined && (
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 rounded-md border border-blue-200">
+                <span className="text-xs font-medium text-blue-700 whitespace-nowrap">
+                  {Math.round(score * 100)}% match
+                </span>
+              </div>
+            )}
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200">
+              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+              <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+                {formatTimestamp(timestamp_start)} - {formatTimestamp(timestamp_end)}
+              </span>
+            </div>
           </div>
         </div>
       </div>
