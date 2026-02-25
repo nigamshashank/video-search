@@ -219,6 +219,17 @@ Resources:
             - ssmmessages:OpenControlChannel
             - ssmmessages:OpenDataChannel
             Resource: '*'
+      - PolicyName: SecretsManagerAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - secretsmanager:CreateSecret
+            - secretsmanager:PutSecretValue
+            - secretsmanager:GetSecretValue
+            - secretsmanager:DescribeSecret
+            Resource: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${StackPrefix}-${env}-admin-passwords-*'
 
   InvokeBedrockMarengoRole:
     Type: AWS::IAM::Role
@@ -1322,6 +1333,8 @@ Resources:
           Value: users
         - Name: DOCDB_AUTH_TIMEOUT_SECONDS
           Value: '20'
+        - Name: ADMIN_PASSWORDS_SECRET_NAME
+          Value: !Sub '${StackPrefix}-${env}-admin-passwords'
         Secrets:
         - Name: DOCDB_URI
           ValueFrom: !Sub
@@ -2622,3 +2635,13 @@ Outputs:
   DocumentDBClusterEndpoint:
     Description: 'DocumentDB cluster endpoint (for manual connection / seeding users)'
     Value: !Sub '${DocDBCluster.Endpoint}:27017'
+
+  AdminPasswordsSecretName:
+    Description: 'Secrets Manager secret name containing admin user passwords'
+    Value: !Sub '${StackPrefix}-${env}-admin-passwords'
+    Export:
+      Name: !Sub '${AWS::StackName}-AdminPasswordsSecretName'
+
+  AdminPasswordsRetrievalCommand:
+    Description: 'AWS CLI command to retrieve admin passwords'
+    Value: !Sub 'aws secretsmanager get-secret-value --secret-id ${StackPrefix}-${env}-admin-passwords --query SecretString --output text | jq .'

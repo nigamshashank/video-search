@@ -131,9 +131,6 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
             onTimeUpdate={handleTimeUpdate}
           />
         )}
-
-
-
       </div>
 
       {/* Thumbnail strip placeholder */}
@@ -143,9 +140,8 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
 
       {/* Footer Actions */}
       <div className="flex items-center justify-between mt-4">
-        {/* Confidence score badge */}
         <div className="text-sm font-medium text-gray-500">
-          {confidenceDisplay}
+          {Math.round(evaluationScore)}% Confidence
         </div>
         <button
           onClick={(e) => {
