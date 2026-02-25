@@ -393,7 +393,7 @@ const SearchBarMarengo3 = ({ onSearch, isLoading, onSearchTypeChange, queryValue
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Min Relevance</span>
                   <span className="text-xs font-semibold text-gray-700">
-                    {minRelevance !== null ? minRelevance.toFixed(2) : '0.50'}
+                    {minRelevance !== null ? minRelevance.toFixed(2) : 'Off'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -402,7 +402,7 @@ const SearchBarMarengo3 = ({ onSearch, isLoading, onSearchTypeChange, queryValue
                     min="0"
                     max="1"
                     step="0.05"
-                    value={minRelevance !== null ? minRelevance : 0.5}
+                    value={minRelevance !== null ? minRelevance : 0}
                     onChange={(e) => {
                       const val = parseFloat(e.target.value);
                       setMinRelevance(val === 0 ? null : val);

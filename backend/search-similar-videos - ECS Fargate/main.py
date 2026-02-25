@@ -699,9 +699,9 @@ async def search_videos_marengo3(request: SearchRequest, _auth: Dict[str, Any] =
         query_display = query_text if query_text else ""
         search_type_display = search_type
 
-        # Apply client-side min_relevance filter (uses normalized RRF scores from parse_search_results_vector)
-        # Note: max_segments_per_video is already handled by OpenSearch collapse (server-side)
-        results = apply_post_filters(results, min_relevance)
+        # Apply client-side filters (min_relevance and max_segments_per_video)
+        # Both filters use normalized RRF scores from parse_search_results_vector
+        results = apply_post_filters(results, min_relevance, max_segments_per_video)
 
         # Convert S3 paths to presigned URLs
         results = convert_s3_to_presigned_urls(s3_client, results)
@@ -2007,11 +2007,8 @@ def vector_search_marengo3(
         response = client.search(**search_params)
         logger.info(f"✓ Vector search ({preference}, Marengo 3) completed, found {len(response.get('hits', {}).get('hits', []))} results")
         
-        # If collapse was used, extract results from inner_hits
-        if max_segments_per_video is not None and max_segments_per_video > 0:
-            return parse_search_results_with_collapse(response, max_segments_per_video)
-        else:
-            return parse_search_results_vector(response)
+        # Always use standard parsing (collapse is handled post-search)
+        return parse_search_results_vector(response)
     except Exception as e:
         logger.error(f"Vector search (Marengo 3) error: {e}", exc_info=True)
         return []
@@ -2116,11 +2113,8 @@ def visual_search_marengo3(
             f"✓ Visual search (Marengo 3) completed, found {len(response.get('hits', {}).get('hits', []))} results"
         )
         
-        # If collapse was used, extract results from inner_hits
-        if max_segments_per_video is not None and max_segments_per_video > 0:
-            return parse_search_results_with_collapse(response, max_segments_per_video)
-        else:
-            return parse_search_results(response)
+        # Always use standard parsing (collapse is handled post-search)
+        return parse_search_results(response)
     except Exception as e:
         logger.error(f"Visual search (Marengo 3) error: {e}", exc_info=True)
         return []
@@ -2163,11 +2157,8 @@ def audio_search_marengo3(
             f"✓ Audio search (Marengo 3) completed, found {len(response.get('hits', {}).get('hits', []))} results"
         )
         
-        # If collapse was used, extract results from inner_hits
-        if max_segments_per_video is not None and max_segments_per_video > 0:
-            return parse_search_results_with_collapse(response, max_segments_per_video)
-        else:
-            return parse_search_results(response)
+        # Always use standard parsing (collapse is handled post-search)
+        return parse_search_results(response)
     except Exception as e:
         logger.error(f"Audio search (Marengo 3) error: {e}", exc_info=True)
         return []
@@ -2792,18 +2783,18 @@ def _apply_advanced_filters(
     CRITICAL FIXES for OpenSearch 3.3 compatibility:
     1. Category filter uses hybrid's native filter parameter (not bool wrapping)
     2. min_relevance is applied CLIENT-SIDE after search (not server-side)
-    3. Collapse inner_hits uses correct array format (not object)
+    3. max_segments_per_video is applied CLIENT-SIDE after search (collapse doesn't work with RRF)
     
     Filters applied:
     1. Category pre-filter - Uses hybrid.filter parameter (preserves normalization pipeline)
     2. Min relevance score - APPLIED CLIENT-SIDE after search with normalized scores
-    3. Max segments per video - Uses collapse with correct inner_hits format
+    3. Max segments per video - APPLIED CLIENT-SIDE after search (collapse incompatible with RRF)
     
     Args:
         search_body: The OpenSearch query body to modify (must contain hybrid query)
         categories: List of category values to filter by (OR logic)
         min_relevance: Minimum score threshold - APPLIED CLIENT-SIDE (not used here)
-        max_segments_per_video: Maximum segments to return per unique video_id
+        max_segments_per_video: Maximum segments per video - APPLIED CLIENT-SIDE (not used here)
     
     Returns:
         Modified search_body with filters applied
@@ -2822,50 +2813,62 @@ def _apply_advanced_filters(
     # 2. min_relevance — NOT applied here, handled client-side after search
     # This ensures we work with normalized scores from RRF pipeline
     
-    # 3. Collapse — requires OS 3.1+ (met); inner_hits requires OS 3.2+ (met)
-    # CRITICAL FIX: inner_hits must be an ARRAY, not an object
-    # CRITICAL FIX: Cannot sort by _score in inner_hits (scores are null in collapse)
+    # 3. max_segments_per_video — NOT applied here, handled client-side after search
+    # Collapse doesn't work properly with RRF pipelines, so we handle it post-search
+    # This ensures proper score normalization and segment selection
     if max_segments_per_video is not None and max_segments_per_video > 0:
-        search_body["collapse"] = {
-            "field": "video_id",
-            "inner_hits": [  # ← ARRAY, not object
-                {
-                    "name": "top_segments",
-                    "size": max_segments_per_video
-                    # No _score sort — inner_hits scores are null in collapse context
-                    # Documents are returned in index order (typically insertion order)
-                }
-            ]
-        }
-        # Increase size to get more unique videos
+        # Increase size to get more results for post-processing
         search_body["size"] = search_body.get("size", TOP_K) * 3
-        logger.info(f"📊 Applied collapse: max {max_segments_per_video} segments per video")
+        logger.info(f"📊 Increased query size for post-search collapse: max {max_segments_per_video} segments per video")
     
     return search_body
 
 
-def apply_post_filters(results: List[Dict], min_relevance: Optional[float] = None) -> List[Dict]:
+def apply_post_filters(results: List[Dict], min_relevance: Optional[float] = None, max_segments_per_video: Optional[int] = None) -> List[Dict]:
     """
-    Post-process search results with client-side min_relevance filtering.
+    Post-process search results with client-side filtering and collapsing.
     
     For vector/hybrid searches, this uses normalized RRF scores (0.0-1.0 range)
     from parse_search_results_vector().
     
-    Note: max_segments_per_video is handled by OpenSearch collapse (server-side),
-    so it's not needed here.
-    
     Args:
         results: Search results with normalized scores
         min_relevance: Minimum normalized score threshold (0.0-1.0)
+        max_segments_per_video: Maximum segments to return per unique video_id
     
     Returns:
-        Filtered results
+        Filtered and collapsed results
     """
     # Min relevance filter - uses normalized scores from parse_search_results_vector()
     if min_relevance is not None:
         before_count = len(results)
         results = [r for r in results if r.get("score", 0) >= min_relevance]
         logger.info(f"📊 Client-side min_relevance filter ({min_relevance}): {before_count} → {len(results)} results")
+
+    # Max segments per video - collapse by video_id (post-search)
+    if max_segments_per_video is not None and max_segments_per_video > 0:
+        before_count = len(results)
+        video_segments = {}
+        
+        # Group results by video_id and keep top N segments per video
+        for result in results:
+            video_id = result.get("video_id")
+            if video_id not in video_segments:
+                video_segments[video_id] = []
+            
+            # Only add if we haven't reached the limit for this video
+            if len(video_segments[video_id]) < max_segments_per_video:
+                video_segments[video_id].append(result)
+        
+        # Flatten back to a single list, maintaining score order
+        results = []
+        for segments in video_segments.values():
+            results.extend(segments)
+        
+        # Re-sort by score to maintain relevance order
+        results.sort(key=lambda x: x.get("score", 0), reverse=True)
+        
+        logger.info(f"📊 Client-side max_segments_per_video collapse ({max_segments_per_video}): {before_count} → {len(results)} results")
 
     return results
 

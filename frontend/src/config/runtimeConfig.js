@@ -119,7 +119,7 @@ class RuntimeConfig {
     console.log('🔧 Using development configuration');
     console.log('⚠️ WARNING: Using localhost backend. For deployed backend, ensure config.json is generated with CloudFormation stack output.');
     return {
-      backendUrl: 'https://d1oui8oi5dqgy7.cloudfront.net',
+      backendUrl: 'https://d3g6thqwhc8vhf.cloudfront.net',
       apiVersion: 'v1',
       environment: 'development',
       features: {

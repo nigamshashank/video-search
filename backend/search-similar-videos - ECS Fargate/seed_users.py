@@ -5,59 +5,9 @@ Runs once at container startup to ensure users exist.
 """
 import os
 import sys
-import secrets
-import string
-import json
-import boto3
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from passlib.hash import bcrypt
-
-def generate_random_password(length=12):
-    """Generate a random password with letters, digits, and special characters."""
-    alphabet = string.ascii_letters + string.digits + "!@#$%"
-    password = ''.join(secrets.choice(alphabet) for _ in range(length))
-    return password
-
-def store_passwords_in_secrets_manager(users_data, secret_name):
-    """Store user passwords in AWS Secrets Manager."""
-    try:
-        secrets_client = boto3.client('secretsmanager')
-        
-        # Prepare secret value as JSON
-        secret_value = {
-            "users": [
-                {
-                    "username": user["username"],
-                    "email": user["email"],
-                    "password": user["password"]
-                }
-                for user in users_data
-            ]
-        }
-        
-        # Try to create or update the secret
-        try:
-            secrets_client.create_secret(
-                Name=secret_name,
-                Description="Admin user credentials for video search application",
-                SecretString=json.dumps(secret_value)
-            )
-            print(f"✅ Created new secret: {secret_name}")
-        except secrets_client.exceptions.ResourceExistsException:
-            # Secret already exists, update it
-            secrets_client.put_secret_value(
-                SecretId=secret_name,
-                SecretString=json.dumps(secret_value)
-            )
-            print(f"✅ Updated existing secret: {secret_name}")
-        
-        return True
-        
-    except Exception as e:
-        print(f"⚠️  Failed to store passwords in Secrets Manager: {e}", file=sys.stderr)
-        print("⚠️  Passwords will only be visible in container logs", file=sys.stderr)
-        return False
 
 def seed_users():
     """Seed DocumentDB with two admin users if they don't exist."""
@@ -67,34 +17,24 @@ def seed_users():
     docdb_db = os.environ.get("DOCDB_DB", "video_search").strip()
     docdb_collection = os.environ.get("DOCDB_USERS_COLLECTION", "users").strip()
     
-    # Get Secrets Manager secret name from environment
-    secret_name = os.environ.get("ADMIN_PASSWORDS_SECRET_NAME", "")
-    
     # Skip if no DocumentDB URI (dev mode)
     if not docdb_uri:
         print("ℹ️  No DOCDB_URI found - skipping user seeding (dev mode)")
         return True
     
-    # Define default admin users with random passwords
+    # Define default admin users with Stronger passwords (bcrypt has 72 byte limit)
     default_users = [
         {
             "username": "admin1",
             "email": "admin1@example.com",
-            "password": generate_random_password(12)
+            "password": "cNeTvz9HRjP5rRT"  # Stronger password
         },
         {
             "username": "admin2", 
             "email": "admin2@example.com",
-            "password": generate_random_password(12)
+            "password": "zcGN7fvtu9DPmuJ"  # Stronger password
         }
     ]
-    
-    # Store passwords in Secrets Manager if secret name is provided
-    if secret_name:
-        print(f"🔐 Storing passwords in Secrets Manager: {secret_name}")
-        store_passwords_in_secrets_manager(default_users, secret_name)
-    else:
-        print("⚠️  No ADMIN_PASSWORDS_SECRET_NAME provided - passwords will only be in logs")
     
     try:
         print(f"🔗 Connecting to DocumentDB: {docdb_db}.{docdb_collection}")
