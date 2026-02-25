@@ -10,7 +10,6 @@ A complete AI-powered video search application that lets you upload videos and s
 - ⚡ **Real-time Processing**: Videos are processed automatically upon upload
 - 🌐 **Global CDN**: Fast content delivery via CloudFront
 - 🔒 **Secure Authentication**: JWT-based authentication with admin user management
-- 🔐 **Password Management**: Secure password storage in AWS Secrets Manager
 
 ## 🚀 Quick Deploy (Fork & Deploy)
 
@@ -76,7 +75,6 @@ After the workflow completes successfully:
      - **API URL**: Your backend API endpoint (CloudFront URL)
      - **Video Bucket**: S3 bucket name for uploading videos
      - **OpenSearch**: OpenSearch domain endpoint
-     - **Admin Passwords Secret**: Secret name in AWS Secrets Manager
    - ✅ **Frontend Deployment**
      - **Frontend URL**: Your live application URL (click to open!)
    - 🎉 **Ready to Use!** section with your application link
@@ -86,56 +84,17 @@ After the workflow completes successfully:
 
 💡 **Tip**: Save these URLs! You'll need the API URL for local frontend development.
 
-### 5. Retrieve Admin Passwords
-
-🔐 **Important**: The application requires authentication. You need to retrieve the admin credentials to log in.
-
-**Option 1: Using AWS CLI (Recommended)**
-
-```bash
-# Replace with your actual values from deployment
-aws secretsmanager get-secret-value \
-  --secret-id vs-1-demo-admin-passwords \
-  --query SecretString \
-  --output text \
-  --region us-east-1 | jq .
-```
-
-**Option 2: Using AWS Console**
-
-1. Go to **AWS Secrets Manager** in the AWS Console
-2. Search for your secret (e.g., `vs-1-demo-admin-passwords`)
-3. Click on the secret name
-4. Click **"Retrieve secret value"**
-5. Copy the username and password
-
-**Example Output:**
-```json
-{
-  "users": [
-    {
-      "username": "admin1",
-      "email": "admin1@example.com",
-      "password": "aB3$xY9zK2m!"
-    },
-    {
-      "username": "admin2",
-      "email": "admin2@example.com",
-      "password": "pQ7#wE5rT8n@"
-    }
-  ]
-}
-```
-
-💡 **Note**: Passwords are randomly generated during deployment for security. Each deployment creates new passwords.
-
-### 6. Access Your Application
+### 5. Access Your Application
 
 1. **Open the Frontend URL** from the deployment summary
-2. **Log in** using one of the admin credentials retrieved in step 5
+2. **Log in** using the default admin credentials:
+   - **Username**: `admin1` or `admin2`
+   - **Password**: Check the deployment logs or contact your administrator
 3. **Start uploading videos** and searching!
 
 🎉 **You're all set!** The application is now ready to use.
+
+> 💡 **Note**: For security, change the default passwords after first login in production environments.
 
 ## 📖 Documentation
 
@@ -248,7 +207,6 @@ Use the same workflow that deployed your infrastructure:
 - ✅ VPC and networking resources
 - ✅ CloudFront distributions
 - ✅ IAM roles and policies
-- ✅ AWS Secrets Manager secrets (including admin passwords)
 - ✅ DocumentDB cluster
 - ✅ All CloudFormation stacks
 
@@ -344,13 +302,12 @@ Each environment is isolated with its own resources.
 
 After deploying:
 1. **Find your application URL** in the deployment summary (Actions tab)
-2. **Retrieve admin passwords** from AWS Secrets Manager (see step 5 above)
-3. **Log in to the application** using the admin credentials
-4. **Upload test videos** through the web interface
-5. **Try different search queries** to test AI-powered search
-6. **Monitor in CloudWatch** to see processing in action
-7. **Customize for your needs** using local development
-8. **Build something amazing!**
+2. **Log in to the application** using the default admin credentials
+3. **Upload test videos** through the web interface
+4. **Try different search queries** to test AI-powered search
+5. **Monitor in CloudWatch** to see processing in action
+6. **Customize for your needs** using local development
+7. **Build something amazing!**
 
 ## 📚 Quick Reference
 
@@ -365,23 +322,6 @@ After deploying:
 - **AWS Console**: Check CloudFormation, S3, OpenSearch, Lambda, ECS
 
 ### Common Commands
-
-**Retrieve Admin Passwords:**
-```bash
-# Get admin credentials
-aws secretsmanager get-secret-value \
-  --secret-id vs-1-demo-admin-passwords \
-  --query SecretString \
-  --output text \
-  --region us-east-1 | jq .
-
-# Or get just the passwords in a readable format
-aws secretsmanager get-secret-value \
-  --secret-id vs-1-demo-admin-passwords \
-  --query SecretString \
-  --output text \
-  --region us-east-1 | jq -r '.users[] | "Username: \(.username)\nPassword: \(.password)\n"'
-```
 
 **View Deployment Outputs:**
 ```bash
@@ -406,7 +346,7 @@ aws s3 ls s3://vs-1-videos-us-east-1-[account-id]-demo/
 
 **View Application Logs:**
 ```bash
-# API logs (includes password generation logs)
+# API logs
 aws logs tail /ecs/vs-1-demo-search-similar-videos-task --follow
 
 # Processing logs
