@@ -393,7 +393,7 @@ const SearchBarMarengo3 = ({ onSearch, isLoading, onSearchTypeChange, queryValue
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold uppercase tracking-wide text-gray-500">Min Relevance</span>
                   <span className="text-xs font-semibold text-gray-700">
-                    {minRelevance !== null ? minRelevance.toFixed(2) : 'Off'}
+                    {minRelevance !== null ? `${Math.round(minRelevance * 100)}%` : 'Off'}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
