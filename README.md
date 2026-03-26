@@ -9,7 +9,7 @@ A complete AI-powered video search application that lets you upload videos and s
 - 🖼️ **Thumbnail Generation**: Automatic thumbnail creation for uploaded videos
 - ⚡ **Real-time Processing**: Videos are processed automatically upon upload
 - 🌐 **Global CDN**: Fast content delivery via CloudFront
-- 🔒 **Secure**: Built with AWS security best practices
+- 🔒 **Secure Authentication**: JWT-based authentication with admin user management
 
 ## 🚀 Quick Deploy (Fork & Deploy)
 
@@ -83,6 +83,18 @@ After the workflow completes successfully:
 ![alt text](image.png)
 
 💡 **Tip**: Save these URLs! You'll need the API URL for local frontend development.
+
+### 5. Access Your Application
+
+1. **Open the Frontend URL** from the deployment summary
+2. **Log in** using the default admin credentials:
+   - **Username**: `admin1` or `admin2`
+   - **Password**: Check the deployment logs or contact your administrator
+3. **Start uploading videos** and searching!
+
+🎉 **You're all set!** The application is now ready to use.
+
+> 💡 **Note**: For security, change the default passwords after first login in production environments.
 
 ## 📖 Documentation
 
@@ -195,6 +207,7 @@ Use the same workflow that deployed your infrastructure:
 - ✅ VPC and networking resources
 - ✅ CloudFront distributions
 - ✅ IAM roles and policies
+- ✅ DocumentDB cluster
 - ✅ All CloudFormation stacks
 
 **After cleanup completes:**
@@ -289,11 +302,12 @@ Each environment is isolated with its own resources.
 
 After deploying:
 1. **Find your application URL** in the deployment summary (Actions tab)
-2. **Upload test videos** through the web interface
-3. **Try different search queries** to test AI-powered search
-4. **Monitor in CloudWatch** to see processing in action
-5. **Customize for your needs** using local development
-6. **Build something amazing!**
+2. **Log in to the application** using the default admin credentials
+3. **Upload test videos** through the web interface
+4. **Try different search queries** to test AI-powered search
+5. **Monitor in CloudWatch** to see processing in action
+6. **Customize for your needs** using local development
+7. **Build something amazing!**
 
 ## 📚 Quick Reference
 

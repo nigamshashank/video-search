@@ -10,18 +10,24 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
     timestamp_start,
     timestamp_end,
     clip_text,
+    score,
     presigned_url,
     thumbnail_path,
     video_name,
-    video_duration_sec,
-    score
+    video_duration_sec
   } = clip;
+
+  // Confidence score badge
+  const rawScore = typeof score === 'number' ? score : 0;
+  const normalizedScore = rawScore > 1 ? rawScore : Math.abs(rawScore) * 100;
+  const evaluationScore = Math.min(Math.max(0, Math.min(normalizedScore, 100)), 80);
+  const confidenceDisplay = `${Math.round(evaluationScore)}% confidence`;
 
   // Use thumbnail_path if available (presigned URL from backend), otherwise generate from video
   const videoUrl = presigned_url || video_path;
   const { thumbnail, isLoading: thumbnailLoading, error: thumbnailError } = use_thumbnail(
-    videoUrl, 
-    video_id, 
+    videoUrl,
+    video_id,
     timestamp_start,
     thumbnail_path
   );
@@ -38,7 +44,7 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
       videoEl.currentTime = timestamp_start || 0;
       const playPromise = videoEl.play();
       if (playPromise?.catch) {
-        playPromise.catch(() => {});
+        playPromise.catch(() => { });
       }
     }
   }, [timestamp_start, videoUrl]);
@@ -73,26 +79,17 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
           <h3 className="text-base font-semibold text-gray-900 line-clamp-1 leading-tight flex-1">
             {video_name || clip_text || 'Untitled Video'}
           </h3>
-          <div className="flex-shrink-0 flex items-center gap-2">
-            {score !== undefined && (
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 rounded-md border border-blue-200">
-                <span className="text-xs font-medium text-blue-700 whitespace-nowrap">
-                  {Math.round(score * 100)}% match
-                </span>
-              </div>
-            )}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-              <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
-                {formatTimestamp(timestamp_start)} - {formatTimestamp(timestamp_end)}
-              </span>
-            </div>
+          <div className="flex-shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 bg-white rounded-md border border-gray-200">
+            <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+            <span className="text-xs font-medium text-gray-600 whitespace-nowrap">
+              {formatTimestamp(timestamp_start)} - {formatTimestamp(timestamp_end)}
+            </span>
           </div>
         </div>
       </div>
 
       {/* Video Preview Container */}
-      <div 
+      <div
         className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden mb-3 group"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -103,7 +100,7 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
             <Loader2 size={48} className="text-gray-400 animate-spin" />
           </div>
         )}
-        
+
         {/* Error state */}
         {thumbnailError && !thumbnail && (
           <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
@@ -112,11 +109,11 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
             </div>
           </div>
         )}
-        
+
         {/* Actual thumbnail */}
         {thumbnail && (
-          <img 
-            src={thumbnail} 
+          <img
+            src={thumbnail}
             alt={`Thumbnail at ${formatTimestamp(timestamp_start)}`}
             className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-200 ${isHovering ? 'opacity-0' : 'opacity-100'}`}
             loading="lazy"
@@ -134,7 +131,6 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
             onTimeUpdate={handleTimeUpdate}
           />
         )}
-
       </div>
 
       {/* Thumbnail strip placeholder */}
@@ -143,7 +139,10 @@ const VideoClipCardMarengo3 = ({ clip, onClick, index }) => {
       </div> */}
 
       {/* Footer Actions */}
-      <div className="flex items-center justify-end mt-4">
+      <div className="flex items-center justify-between mt-4">
+        <div className="text-sm font-medium text-gray-500">
+          {Math.round(evaluationScore)}% Confidence
+        </div>
         <button
           onClick={(e) => {
             e.stopPropagation();
