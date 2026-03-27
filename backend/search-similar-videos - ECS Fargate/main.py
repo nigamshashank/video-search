@@ -889,11 +889,17 @@ async def generate_upload_url(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class MultipartPart(BaseModel):
+    """Single part of a multipart upload"""
+    ETag: str
+    PartNumber: int
+
+
 class CompleteMultipartRequest(BaseModel):
     """Request body for completing multipart upload"""
     uploadId: str
     s3_key: str
-    parts: List[Dict[str, str]]  # List of {"ETag": "...", "PartNumber": 1}
+    parts: List[MultipartPart]  # List of {"ETag": "...", "PartNumber": 1}
 
 
 @app.post("/complete-multipart-upload")
@@ -928,13 +934,16 @@ async def complete_multipart_upload(
         logger.info(f"Completing multipart upload for: {s3_key} (uploadId: {upload_id})")
         logger.info(f"Received {len(parts)} parts to complete")
 
+        # Convert Pydantic models to dicts for S3 API
+        parts_dicts = [{"ETag": p.ETag, "PartNumber": p.PartNumber} for p in parts]
+
         # Complete the multipart upload
         try:
             response = s3_client.complete_multipart_upload(
                 Bucket=bucket_name,
                 Key=s3_key,
                 UploadId=upload_id,
-                MultipartUpload={"Parts": parts}
+                MultipartUpload={"Parts": parts_dicts}
             )
 
             logger.info(f"✓ Multipart upload completed for: {s3_key}")

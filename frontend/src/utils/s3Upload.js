@@ -3,7 +3,7 @@
  * This avoids memory crashes by using file.slice() instead of arrayBuffer().
  */
 export const upload_to_s3 = async (file, presignedData, onProgress) => {
-  const { presigned_urls, uploadId, s3_path, presigned_url } = presignedData;
+  const { presigned_urls, uploadId, s3_path, s3_key, presigned_url } = presignedData;
 
   // CASE 1: MULTIPART UPLOAD (Recommended for large files)
   if (presigned_urls && Array.isArray(presigned_urls)) {
@@ -35,7 +35,7 @@ export const upload_to_s3 = async (file, presignedData, onProgress) => {
       }
     }
 
-    return { s3_path, uploadId, parts: partsMetadata, type: 'multipart' };
+    return { s3_path, s3_key, uploadId, parts: partsMetadata, type: 'multipart' };
   }
 
   // CASE 2: SINGLE PUT UPLOAD (Fallback - may fail on 2GB depending on S3 config)
