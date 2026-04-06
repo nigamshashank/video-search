@@ -434,7 +434,13 @@ export const completeMultipartUpload = async (uploadData) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Failed to complete multipart upload: ${response.status} - ${errorData.detail || ''}`);
+      const detail = errorData.detail;
+      const errorMsg = typeof detail === 'string'
+        ? detail
+        : Array.isArray(detail)
+          ? detail.map(e => e.msg || JSON.stringify(e)).join('; ')
+          : JSON.stringify(detail) || response.statusText;
+      throw new Error(`Failed to complete multipart upload: ${response.status} - ${errorMsg}`);
     }
 
     const data = await response.json();

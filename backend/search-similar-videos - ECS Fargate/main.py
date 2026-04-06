@@ -899,12 +899,7 @@ class CompleteMultipartRequest(BaseModel):
     """Request body for completing multipart upload"""
     uploadId: str
     s3_key: str
-    # Accept PartNumber as int (or string coercible to int) and validate shape.
-    class Part(BaseModel):
-        ETag: str
-        PartNumber: int
-
-    parts: List[Part]
+    parts: List[MultipartPart]
 
 
 @app.post("/complete-multipart-upload")
@@ -939,14 +934,18 @@ async def complete_multipart_upload(
         logger.info(f"Completing multipart upload for: {s3_key} (uploadId: {upload_id})")
         logger.info(f"Received {len(parts)} parts to complete")
 
-        # Convert Pydantic models to dicts for S3 API
-        parts_dicts = [{"ETag": p.ETag, "PartNumber": p.PartNumber} for p in parts]
-
         # Complete the multipart upload
         try:
             # Boto3 requires PartNumber to be int and parts sorted ascending.
+            # S3 expects ETags wrapped in double quotes.
             parts_payload = sorted(
-                ({"ETag": p.ETag, "PartNumber": p.PartNumber} for p in parts),
+                (
+                    {
+                        "ETag": p.ETag if p.ETag.startswith('"') else f'"{p.ETag}"',
+                        "PartNumber": p.PartNumber,
+                    }
+                    for p in parts
+                ),
                 key=lambda p: p["PartNumber"],
             )
             response = s3_client.complete_multipart_upload(
